@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Editar usuario</title>
+  </head>
+  <body>
+    <h1>Editar usuario</h1>
+    <form id="editForm">
+      {% csrf_token %}
+      <label>Nombre: <input name="nombre" required></label><br>
+      <label>Correo: <input name="correo" type="email" required></label><br>
+      <label>Rol:
+        <select name="rol">
+          <option value="">(ninguno)</option>
+          <option>Administrador</option>
+          <option>Coordinador PIE</option>
+          <option>Profesor Aula</option>
+          <option>Profesor Especialista</option>
+          <option>Profesional Apoyo</option>
+          <option>Apoderado</option>
+        </select>
+      </label><br>
+      <button type="submit">Guardar</button>
+    </form>
+
+    <script>
+      const userId = "{{ user_id }}";
+      const apiBase = '/api/usuarios/';
+
+      function getCsrfToken() {
+        const name = 'csrftoken';
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        const el = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (el) return el.value;
+        return null;
+      }
+
+      async function load(){
+        const res = await fetch(apiBase + userId + '/');
+        const u = await res.json();
+        const f = document.getElementById('editForm');
+        f.nombre.value = u.nombre;
+        f.correo.value = u.correo;
+        f.rol.value = u.rol || '';
+      }
+
+      document.getElementById('editForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const f = e.target;
+        const body = { nombre: f.nombre.value, correo: f.correo.value, rol: f.rol.value || null };
+        const res = await fetch(apiBase + userId + '/', { method:'PATCH', credentials: 'same-origin', headers: {'Content-Type':'application/json', 'X-CSRFToken': getCsrfToken()}, body: JSON.stringify(body)});
+        if (res.ok) window.location.href = '/api/ui/users/';
+        else alert('Error');
+      });
+
+      load();
+    </script>
+  </body>
+</html>

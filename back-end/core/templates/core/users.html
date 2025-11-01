@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Usuarios - UI</title>
+  </head>
+  <body>
+    <h1>Gestión de Usuarios</h1>
+
+    <form id="createUser">
+      {% csrf_token %}
+      <label>Nombre: <input name="nombre" required></label><br>
+      <label>Correo: <input name="correo" type="email" required></label><br>
+      <label>Password: <input name="password" type="password" required></label><br>
+      <label>Rol:
+        <select name="rol">
+          <option value="">(ninguno)</option>
+          <option>Administrador</option>
+          <option>Coordinador PIE</option>
+          <option>Profesor Aula</option>
+          <option>Profesor Especialista</option>
+          <option>Profesional Apoyo</option>
+          <option>Apoderado</option>
+        </select>
+      </label><br>
+      <button type="submit">Crear usuario</button>
+    </form>
+
+    <h2>Usuarios</h2>
+    <ul id="usersList"></ul>
+
+    <h2>Validar credenciales</h2>
+    <form id="loginForm">
+      {% csrf_token %}
+      <label>Correo: <input name="correo" type="email"></label>
+      <label>Password: <input name="password" type="password"></label>
+      <button type="submit">Validar</button>
+    </form>
+    <div id="loginResult"></div>
+
+    <script>
+      const apiBase = '/api/usuarios/';
+
+      function getCsrfToken() {
+        const name = 'csrftoken';
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        const el = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (el) return el.value;
+        return null;
+      }
+
+      async function fetchUsers(){
+        const res = await fetch(apiBase);
+        const data = await res.json();
+        const ul = document.getElementById('usersList');
+        ul.innerHTML = '';
+        data.forEach(u => {
+          const li = document.createElement('li');
+          li.textContent = `${u.nombre} <${u.correo}> (${u.rol || '—'})`;
+          // Edit button
+          const editBtn = document.createElement('button');
+          editBtn.textContent = 'Editar';
+          editBtn.onclick = ()=> { window.location.href = `/api/ui/users/${u.id_usuario}/edit/`; };
+          li.appendChild(editBtn);
+          // Delete button
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Eliminar';
+          delBtn.onclick = ()=> deleteUser(u.id_usuario);
+          li.appendChild(delBtn);
+          ul.appendChild(li);
+        });
+      }
+
+      document.getElementById('createUser').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const form = e.target;
+        const body = {
+          nombre: form.nombre.value,
+          correo: form.correo.value,
+          password: form.password.value,
+          rol: form.rol.value || null,
+        };
+
+        const res = await fetch(apiBase, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Content-Type':'application/json', 'X-CSRFToken': getCsrfToken()},
+          body: JSON.stringify(body),
+        });
+        if (res.ok){
+          form.reset();
+          fetchUsers();
+        } else {
+          const err = await res.json();
+          alert('Error: ' + JSON.stringify(err));
+        }
+      });
+
+      // Inicial
+      fetchUsers();
+
+      async function deleteUser(id){
+        if (!confirm('Confirmar eliminación')) return;
+        try {
+          const res = await fetch(apiBase + id + '/', {
+            method:'DELETE',
+            credentials: 'same-origin',
+            headers: {'X-CSRFToken': getCsrfToken()}
+          });
+          if (res.ok || res.status===204) {
+            fetchUsers();
+            return;
+          }
+          // Try to parse JSON error returned by the API (we added traceback there)
+          let errText = '';
+          try {
+            const j = await res.json();
+            errText = JSON.stringify(j, null, 2);
+          } catch(parseErr){
+            errText = await res.text();
+          }
+          alert('Error al eliminar. Server responded with status ' + res.status + '\n\n' + errText);
+          console.error('Delete failed', res.status, errText);
+        } catch (networkErr) {
+          alert('Error de red al eliminar: ' + networkErr.message);
+          console.error(networkErr);
+        }
+      }
+
+      // now handled by a separate edit page
+      function editUser(user){
+        window.location.href = `/api/ui/users/${user.id_usuario}/edit/`;
+      }
+
+      document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const f = e.target;
+        const res = await fetch('/api/login/', {
+          method:'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json', 'X-CSRFToken': getCsrfToken()},
+          body: JSON.stringify({correo: f.correo.value, password: f.password.value})
+        });
+        const j = await res.json();
+        document.getElementById('loginResult').textContent = JSON.stringify(j);
+      });
+    </script>
+  </body>
+</html>
