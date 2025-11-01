@@ -84,8 +84,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'nee',
         'USER': 'root',
-        'PASSWORD': 'admin12345',        # o la contraseña que uses
-        'HOST': '127.0.0.1',
+        'PASSWORD': 'Codawbo2002-.',        # o la contraseña que uses
+        'HOST': 'nee.cfwgk222xnvs.us-east-1.rds.amazonaws.com',
         'PORT': '3306',
     }
 }
