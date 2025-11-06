@@ -14,14 +14,16 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './estilos/personalizado.css';
 
 // ✅ Configuración de axios
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://34.227.79.113:8000';
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://54.234.221.254:8000/api/';
 axios.defaults.headers.common['Accept'] = 'application/json';
 axios.defaults.withCredentials = true;
 
+
+// Obtener token CSRF desde las cookies
 axios.interceptors.request.use((config) => {
-  const token = Cookies.get('csrftoken');
-  if (token) {
-    config.headers['X-CSRFToken'] = token;
+  const csrfToken = Cookies.get('csrftoken');
+  if (csrfToken) {
+    config.headers['X-CSRFToken'] = csrfToken;
   }
   return config;
 });

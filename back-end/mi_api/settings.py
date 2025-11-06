@@ -26,7 +26,12 @@ SECRET_KEY = 'django-insecure-uw4m&_u@9_kehx!ptc=hnuzbm2tjlf1*s-7qfp*i!gsc3sfz5b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['54.234.221.254', 'localhost', '127.0.0.1']
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://54.234.221.254',
+    'http://54.234.221.254:8000'
+]
 
 
 # Application definition
@@ -145,7 +150,14 @@ CORS_ALLOWED_ORIGINS = [
 AUTH_USER_MODEL = 'core.Usuario'
 
 # configuracion para el modelo de usuario personalizado
-CORS_ALLOW_ALL_ORIGINS = True
-CSRF_TRUSTED_ORIGINS = ['http://34.227.79.113', 'http://34.227.79.113:8000']
+CORS_ALLOW_ALL_ORIGINS = True 
 CORS_ALLOW_CREDENTIALS = True
 MIDDLEWARE.insert(1, 'corsheaders.middleware.CorsMiddleware')
+
+
+
+# Asegura que las cookies se puedan enviar
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'

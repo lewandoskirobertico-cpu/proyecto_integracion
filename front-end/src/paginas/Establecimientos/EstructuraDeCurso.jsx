@@ -3,8 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Buscar from '../../componentes/interfaz/Buscar';
 import BotonCrearConModal from '../../componentes/interfaz/BotonCrearConModal';
-import { obtenerEstructuraCurso, crearCurso, actualizarCurso } from '../../servicios/estructuraCurso';
 import BotonEditarConModal from '../../componentes/interfaz/BotonEditarConModal';
+import { obtenerEstructuraCurso, crearCurso, actualizarCurso } from '../../servicios/estructuraCurso';
 
 function normalizarParamEst(s) {
   try {
@@ -13,6 +13,7 @@ function normalizarParamEst(s) {
     return String(s ?? '').replace(/-/g, ' ').trim();
   }
 }
+
 function normalizarTexto(str) {
   return (str ?? '')
     .normalize('NFD')
@@ -38,11 +39,14 @@ export default function EstructuraDeCurso() {
       const res = await obtenerEstructuraCurso(nombreEstParam);
       setData(res);
     } catch (err) {
-      const msg = err?.message
-        ? `No se pudo cargar la estructura de curso. Detalle: ${err.message}`
-        : 'No se pudo cargar la estructura de curso.';
+      console.error('[EstructuraDeCurso] Error al cargar datos:', err);
+      const msg =
+        err?.message && err?.message.includes('Network Error')
+          ? 'No se pudo conectar al servidor. Revisa la conexión o la URL del backend.'
+          : err?.response?.status === 403
+          ? 'No tienes permiso para acceder a estos datos (403).'
+          : 'No se pudo cargar la estructura de curso.';
       setError(msg);
-      console.error('[EstructuraDeCurso] Error:', err);
     } finally {
       setCargando(false);
     }
@@ -71,14 +75,9 @@ export default function EstructuraDeCurso() {
     });
   }, [busqueda, data.cursos]);
 
-  function irAlumnos(curso) {
-    navigate(`/establecimientos/${id}/cursos/${curso.id}/alumnos`);
-  }
-
-  // ⬇️ Nuevo: navegación al apoyo personal
-  function irApoyoPersonal(curso) {
-    navigate(`/establecimientos/${id}/cursos/${curso.id}/apoyo-personal`);
-  }
+  // ✅ navegación dentro del sistema
+  const irAlumnos = (c) => navigate(`/establecimientos/${id}/cursos/${c.id}/alumnos`);
+  const irApoyoPersonal = (c) => navigate(`/establecimientos/${id}/cursos/${c.id}/apoyo-personal`);
 
   return (
     <div className="container py-4">
@@ -118,7 +117,9 @@ export default function EstructuraDeCurso() {
                   ...(vals.establecimiento ? { establecimiento: String(vals.establecimiento).trim() } : {}),
                 })}
                 onGuardar={async (payload) => await crearCurso(payload)}
-                onExito={async () => { await cargarDatos(); }}
+                onExito={async () => {
+                  await cargarDatos();
+                }}
               />
             </div>
           </div>
@@ -131,9 +132,7 @@ export default function EstructuraDeCurso() {
             />
           </div>
 
-          {error ? (
-            <div className="alert alert-danger" role="alert">{error}</div>
-          ) : null}
+          {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
           {cargando ? (
             <div className="d-flex align-items-center gap-2 text-muted justify-content-center">
@@ -142,60 +141,50 @@ export default function EstructuraDeCurso() {
             </div>
           ) : (
             <div className="table-responsive-md">
-              <table className="table table-hover table-sm align-middle ">
+              <table className="table table-hover table-sm align-middle">
                 <thead className="table-light">
                   <tr>
-                    <th className="text-nowrap">Curso</th>
-                    <th className="text-nowrap">Nivel</th>
-                    <th className="text-center text-nowrap">Año escolar</th>
-                    <th className="text-nowrap">Establecimiento</th>
-                    <th className="text-center text-nowrap">Habilitado Subv.</th>
-                    <th className="text-center text-nowrap">JECD</th>
-                    <th className="text-center text-nowrap">Matr. Vig.</th>
-                    <th className="text-center text-nowrap">Matr. Post.</th>
-                    <th className="text-center text-nowrap">Alumnos</th>
-                    {/* ⬇️ Nuevo encabezado */}
-                    <th className="text-center text-nowrap">Apoyo personal</th>
-                    <th className="text-center text-nowrap">Acciones</th>
+                    <th>Curso</th>
+                    <th>Nivel</th>
+                    <th className="text-center">Año escolar</th>
+                    <th>Establecimiento</th>
+                    <th className="text-center">Habilitado Subv.</th>
+                    <th className="text-center">JECD</th>
+                    <th className="text-center">Matr. Vig.</th>
+                    <th className="text-center">Matr. Post.</th>
+                    <th className="text-center">Alumnos</th>
+                    <th className="text-center">Apoyo personal</th>
+                    <th className="text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cursosFiltrados.length ? (
                     cursosFiltrados.map((c) => (
                       <tr key={c.id}>
-                        <td className="text-nowrap">{c.nombre ?? c.nombre_display ?? (c.nivel ? `${c.nivel}°` : '—')}</td>
-                        <td className="text-nowrap">{c.nivel ?? '—'}</td>
-                        <td className="text-center text-nowrap">{c.anio_escolar ?? '—'}</td>
-                        <td className="text-nowrap">{c.establecimiento ?? '—'}</td>
+                        <td>{c.nombre ?? c.nombre_display ?? '—'}</td>
+                        <td>{c.nivel ?? '—'}</td>
+                        <td className="text-center">{c.anio_escolar ?? '—'}</td>
+                        <td>{c.establecimiento ?? '—'}</td>
                         <td className="text-center"><span className="badge text-bg-secondary">NO</span></td>
-                        <td className="text-center"><span className="badge text-bg-success">Si</span></td>
+                        <td className="text-center"><span className="badge text-bg-success">Sí</span></td>
                         <td className="text-center">0</td>
                         <td className="text-center">0</td>
 
                         {/* Botón alumnos */}
                         <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => irAlumnos(c)}
-                            title="Ver alumnos"
-                          >
-                            <i className="bi bi-people-fill" aria-hidden="true"></i>
+                          <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => irAlumnos(c)}>
+                            <i className="bi bi-people-fill"></i>
                           </button>
                         </td>
 
-                        {/* ⬇️ Nuevo botón apoyo personal */}
+                        {/* Botón apoyo personal */}
                         <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-success"
-                            onClick={() => irApoyoPersonal(c)}
-                            title="Ver apoyo personal"
-                          >
-                            <i className="bi bi-person-heart" aria-hidden="true"></i>
+                          <button type="button" className="btn btn-sm btn-outline-success" onClick={() => irApoyoPersonal(c)}>
+                            <i className="bi bi-person-heart"></i>
                           </button>
                         </td>
 
+                        {/* Editar */}
                         <td className="text-center">
                           <BotonEditarConModal
                             registro={c}
