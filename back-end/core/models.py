@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-
+from django.utils import timezone
+from datetime import timedelta
+import uuid
 # ================================================================
 # 1. USUARIO PERSONALIZADO (PROFESIONAL)
 # ================================================================
@@ -288,3 +290,163 @@ class InformeFamiliaReceptor(models.Model):
     es_apoderado_suplente = models.BooleanField(default=False)
     poder_simple = models.BooleanField(default=False)
     en_presencia_de = models.CharField(max_length=200, blank=True, null=True)
+
+
+
+
+
+class PasswordResetToken(models.Model):
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name='tokens_recuperacion'
+    )
+    token = models.CharField(max_length=64, unique=True, default=uuid.uuid4)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    expira_en = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        # Expira automáticamente en 10 minutos si no se define otra fecha
+        if not self.expira_en:
+            self.expira_en = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+
+    def is_valido(self):
+        return timezone.now() < self.expira_en
+
+    def __str__(self):
+        return f"Token para {self.usuario.username} - válido hasta {self.expira_en}"
+
+
+
+
+
+
+# ================================================================
+# REGISTRO PIE – Registro de planificación y evaluación del curso
+# ================================================================
+
+
+class RegistroPIE(models.Model):
+    """
+    Registro general del Programa de Integración Escolar (PIE) por curso.
+    """
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='registros_pie')
+    responsable = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_pie')
+    fecha_creacion = models.DateField(auto_now_add=True)
+    periodo = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: Primer semestre, Segundo semestre, etc.")
+    observaciones_generales = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Registro PIE - {self.curso.nombre} ({self.periodo or 'Sin periodo'})"
+
+
+class EquipoAula(models.Model):
+    """
+    Equipo de aula y profesionales PIE asociados al curso.
+    """
+    registro = models.ForeignKey(RegistroPIE, on_delete=models.CASCADE, related_name='equipo_aula')
+    nombre = models.CharField(max_length=100)
+    rol = models.CharField(
+        max_length=100,
+        choices=[
+            ('Profesor Regular', 'Profesor Regular'),
+            ('Educador Diferencial', 'Educador Diferencial'),
+            ('Psicólogo', 'Psicólogo'),
+            ('Fonoaudiólogo', 'Fonoaudiólogo'),
+            ('Terapeuta Ocupacional', 'Terapeuta Ocupacional'),
+            ('Asistente de Aula', 'Asistente de Aula'),
+            ('Coordinador PIE', 'Coordinador PIE'),
+            ('Otro', 'Otro')
+        ]
+    )
+    telefono = models.CharField(max_length=50, blank=True, null=True)
+    correo = models.EmailField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.nombre} - {self.rol}"
+
+
+class PlanificacionPIE(models.Model):
+    """
+    Planificación general del curso y diagnóstico pedagógico.
+    """
+    registro = models.OneToOneField(RegistroPIE, on_delete=models.CASCADE, related_name='planificacion')
+    descripcion_curso = models.TextField(blank=True, null=True)
+    fortalezas = models.TextField(blank=True, null=True)
+    necesidades_apoyo = models.TextField(blank=True, null=True)
+    estrategias_generales = models.TextField(blank=True, null=True)
+    recursos_apoyo = models.TextField(blank=True, null=True)
+    observaciones = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Planificación PIE - {self.registro.curso.nombre}"
+
+
+class TrabajoColaborativo(models.Model):
+    """
+    Registra instancias de trabajo colaborativo docente y PIE.
+    """
+    registro = models.ForeignKey(RegistroPIE, on_delete=models.CASCADE, related_name='trabajos_colaborativos')
+    fecha = models.DateField(blank=True, null=True)
+    tipo = models.CharField(
+        max_length=100,
+        choices=[
+            ('Co-enseñanza', 'Co-enseñanza'),
+            ('Planificación compartida', 'Planificación compartida'),
+            ('Reunión de equipo', 'Reunión de equipo'),
+            ('Trabajo con familia', 'Trabajo con familia'),
+            ('Trabajo con comunidad', 'Trabajo con comunidad'),
+            ('Otro', 'Otro'),
+        ]
+    )
+    descripcion = models.TextField(blank=True, null=True)
+    observaciones = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.tipo} ({self.fecha or 'sin fecha'})"
+
+
+class ActividadComunidad(models.Model):
+    """
+    Actividades realizadas con familias o comunidad educativa.
+    """
+    registro = models.ForeignKey(RegistroPIE, on_delete=models.CASCADE, related_name='actividades_comunidad')
+    fecha = models.DateField()
+    participantes = models.TextField(blank=True, null=True)
+    objetivos = models.TextField(blank=True, null=True)
+    resultados = models.TextField(blank=True, null=True)
+    observaciones = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Actividad Comunidad ({self.fecha}) - {self.registro.curso.nombre}"
+
+
+class LogroAprendizaje(models.Model):
+    """
+    Logros o avances observados en los estudiantes con NEE.
+    """
+    registro = models.ForeignKey(RegistroPIE, on_delete=models.CASCADE, related_name='logros')
+    estudiante = models.ForeignKey(Estudiante, on_delete=models.SET_NULL, null=True, blank=True)
+    fecha = models.DateField(blank=True, null=True)
+    logros = models.TextField(blank=True, null=True)
+    dificultades = models.TextField(blank=True, null=True)
+    estrategias_utilizadas = models.TextField(blank=True, null=True)
+    comentarios = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Logros {self.estudiante or 'Sin estudiante'} ({self.fecha or 'sin fecha'})"
+
+
+class EvaluacionPIE(models.Model):
+    """
+    Evaluación final del proceso PIE en el curso.
+    """
+    registro = models.OneToOneField(RegistroPIE, on_delete=models.CASCADE, related_name='evaluacion')
+    fecha_evaluacion = models.DateField(blank=True, null=True)
+    resultados = models.TextField(blank=True, null=True)
+    conclusiones = models.TextField(blank=True, null=True)
+    proyecciones = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Evaluación PIE - {self.registro.curso.nombre}"

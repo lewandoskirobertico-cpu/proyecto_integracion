@@ -172,3 +172,62 @@ class InformeFamiliaSerializer(serializers.ModelSerializer):
     class Meta:
         model = InformeFamilia
         fields = '__all__'
+
+
+
+
+# ================================================================
+# SERIALIZERS – REGISTRO PIE
+# ================================================================
+
+class EquipoAulaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EquipoAula
+        fields = '__all__'
+
+
+class PlanificacionPIESerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlanificacionPIE
+        fields = '__all__'
+
+
+class TrabajoColaborativoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrabajoColaborativo
+        fields = '__all__'
+
+
+class ActividadComunidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ActividadComunidad
+        fields = '__all__'
+
+
+class LogroAprendizajeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LogroAprendizaje
+        fields = '__all__'
+
+
+class EvaluacionPIESerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EvaluacionPIE
+        fields = '__all__'
+
+
+class RegistroPIESerializer(serializers.ModelSerializer):
+    """
+    Incluye los subcomponentes (equipo, planificación, logros, etc.)
+    para mostrar todo el registro completo.
+    """
+    equipo_aula = EquipoAulaSerializer(many=True, read_only=True)
+    trabajos_colaborativos = TrabajoColaborativoSerializer(many=True, read_only=True)
+    actividades_comunidad = ActividadComunidadSerializer(many=True, read_only=True)
+    logros = LogroAprendizajeSerializer(many=True, read_only=True)
+    planificacion = PlanificacionPIESerializer(read_only=True)
+    evaluacion = EvaluacionPIESerializer(read_only=True)
+
+    class Meta:
+        model = RegistroPIE
+        fields = '__all__'

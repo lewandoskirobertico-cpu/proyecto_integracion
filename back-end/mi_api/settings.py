@@ -161,3 +161,17 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
+
+
+
+# ==========================
+# CONFIGURACIÓN DE EMAIL
+# ==========================
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'gestioncontra12@gmail.com'          # 👉 cambia esto
+EMAIL_HOST_PASSWORD = 'xwmq hsmc rmmw mbuz'  # 👉 clave de aplicación, no tu clave normal
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
